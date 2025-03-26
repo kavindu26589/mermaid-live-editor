@@ -1,0 +1,7 @@
+# _config.yml
+title: "My Mermaid Live Editor"
+description: "Live editor for Mermaid diagrams"
+
+remote_theme: pages-themes/minimal
+plugins:
+  - jekyll-remote-theme
