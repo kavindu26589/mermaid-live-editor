@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mermaid Live Editor</title>
-  <!-- Load Mermaid -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <!-- Load a specific version of Mermaid known to work -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
     mermaid.initialize({ startOnLoad: false });
   </script>
@@ -57,19 +57,23 @@ graph TD;
   <script>
     let scale = 1;
     
-    // Render the Mermaid diagram using the code from the editor
     function renderDiagram() {
       const code = document.getElementById('editor').value;
       const diagramDiv = document.getElementById('diagram');
       diagramDiv.innerHTML = "";
-      // Use mermaid.render to generate the SVG
-      mermaid.render('mermaidGraph', code, (svgCode) => {
-        diagramDiv.innerHTML = svgCode;
-        applyZoom();
-      });
+      try {
+        // Validate the Mermaid code syntax; throws error if invalid
+        mermaid.parse(code);
+        // Render the Mermaid diagram into an SVG
+        mermaid.render('mermaidGraph', code, function(svgCode) {
+          diagramDiv.innerHTML = svgCode;
+          applyZoom();
+        });
+      } catch (error) {
+        diagramDiv.innerHTML = '<pre style="color:red;">Error: ' + error.message + '</pre>';
+      }
     }
 
-    // Zoom functions that adjust the CSS transform scale
     function zoomIn() {
       scale += 0.1;
       applyZoom();
@@ -90,44 +94,35 @@ graph TD;
       }
     }
 
-    // Download function for SVG, PNG, and PDF
     function download(type) {
       const svgElement = document.getElementById('diagram').querySelector('svg');
       if (!svgElement) {
         alert('Please render the diagram first!');
         return;
       }
-      
-      // Serialize SVG content
       const svgData = new XMLSerializer().serializeToString(svgElement);
-      
       if (type === 'svg') {
         const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         triggerDownload(url, 'diagram.svg');
       } else if (type === 'png' || type === 'pdf') {
-        // Create an image to convert the SVG
         const img = new Image();
         const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
-        
         img.onload = function() {
           const canvas = document.createElement('canvas');
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
           const ctx = canvas.getContext('2d');
-          // Optional: fill background white
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
           if (type === 'png') {
             canvas.toBlob(function(blob) {
               const url = URL.createObjectURL(blob);
               triggerDownload(url, 'diagram.png');
             });
           } else if (type === 'pdf') {
-            // Dynamically load jsPDF library
             const script = document.createElement('script');
             script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
             script.onload = function() {
@@ -149,7 +144,6 @@ graph TD;
       }
     }
     
-    // Helper to trigger download of a given URL
     function triggerDownload(uri, fileName) {
       const link = document.createElement("a");
       link.download = fileName;
@@ -159,7 +153,7 @@ graph TD;
       document.body.removeChild(link);
     }
 
-    // Optionally render the default diagram on page load
+    // Optionally, render the default diagram on page load
     window.onload = renderDiagram;
   </script>
 </body>
