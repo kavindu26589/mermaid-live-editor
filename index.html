@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mermaid Live Editor</title>
+  <!-- Load Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false });
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    #diagram {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      padding: 10px;
+      overflow: auto;
+    }
+    .button-container {
+      margin-top: 10px;
+    }
+    button {
+      margin-right: 10px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mermaid Live Editor</h1>
+  <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
+graph TD;
+    A[Start] --> B[Process];
+    B --> C{Decision};
+    C -- Yes --> D[Result 1];
+    C -- No --> E[Result 2];
+  </textarea>
+  <div class="button-container">
+    <button onclick="renderDiagram()">Render Diagram</button>
+    <button onclick="zoomIn()">Zoom In</button>
+    <button onclick="zoomOut()">Zoom Out</button>
+    <button onclick="download('svg')">Download SVG</button>
+    <button onclick="download('png')">Download PNG</button>
+    <button onclick="download('pdf')">Download PDF</button>
+  </div>
+  <div id="diagram"></div>
+
+  <script>
+    let scale = 1;
+    
+    // Render the Mermaid diagram using the code from the editor
+    function renderDiagram() {
+      const code = document.getElementById('editor').value;
+      const diagramDiv = document.getElementById('diagram');
+      diagramDiv.innerHTML = "";
+      // Use mermaid.render to generate the SVG
+      mermaid.render('mermaidGraph', code, (svgCode) => {
+        diagramDiv.innerHTML = svgCode;
+        applyZoom();
+      });
+    }
+
+    // Zoom functions that adjust the CSS transform scale
+    function zoomIn() {
+      scale += 0.1;
+      applyZoom();
+    }
+    
+    function zoomOut() {
+      if (scale > 0.2) {
+        scale -= 0.1;
+        applyZoom();
+      }
+    }
+    
+    function applyZoom() {
+      const svgElement = document.getElementById('diagram').querySelector('svg');
+      if (svgElement) {
+        svgElement.style.transform = 'scale(' + scale + ')';
+        svgElement.style.transformOrigin = '0 0';
+      }
+    }
+
+    // Download function for SVG, PNG, and PDF
+    function download(type) {
+      const svgElement = document.getElementById('diagram').querySelector('svg');
+      if (!svgElement) {
+        alert('Please render the diagram first!');
+        return;
+      }
+      
+      // Serialize SVG content
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      
+      if (type === 'svg') {
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, 'diagram.svg');
+      } else if (type === 'png' || type === 'pdf') {
+        // Create an image to convert the SVG
+        const img = new Image();
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          // Optional: fill background white
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          if (type === 'png') {
+            canvas.toBlob(function(blob) {
+              const url = URL.createObjectURL(blob);
+              triggerDownload(url, 'diagram.png');
+            });
+          } else if (type === 'pdf') {
+            // Dynamically load jsPDF library
+            const script = document.createElement('script');
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+            script.onload = function() {
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF({
+                orientation: img.width > img.height ? 'landscape' : 'portrait',
+                unit: 'pt',
+                format: [canvas.width, canvas.height]
+              });
+              const imgData = canvas.toDataURL('image/png');
+              pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+              pdf.save('diagram.pdf');
+            };
+            document.body.appendChild(script);
+          }
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
+    }
+    
+    // Helper to trigger download of a given URL
+    function triggerDownload(uri, fileName) {
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = uri;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Optionally render the default diagram on page load
+    window.onload = renderDiagram;
+  </script>
+</body>
+</html>
