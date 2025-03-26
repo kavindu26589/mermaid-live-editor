@@ -3,7 +3,7 @@ layout: default
 title: "Mermaid Live Editor"
 ---
 
-<!-- Optional: Override any extra margins from the theme -->
+<!-- Override theme margins to reduce blank space -->
 <style>
   .wrapper,
   .content,
@@ -20,16 +20,18 @@ title: "Mermaid Live Editor"
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mermaid Live Editor</title>
 
-  <!-- Mermaid JS (dark mode support in v8.13.10 and up) -->
+  <!-- Load Mermaid JS (dark mode support in v8.13.10+) -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
+    // Configure Mermaid for dark mode, left-to-right flow, and increased spacing
     mermaid.initialize({
       startOnLoad: false,
-      // Tell Mermaid to use dark mode for diagrams
       theme: 'dark',
       flowchart: {
         diagramPadding: 5,
-        useMaxWidth: false
+        useMaxWidth: true,
+        nodeSpacing: 100,  // Increase horizontal spacing between nodes
+        rankSpacing: 100   // Increase spacing between "rows" in LR or TD
       },
       sequence: {
         diagramMarginX: 5,
@@ -38,7 +40,7 @@ title: "Mermaid Live Editor"
     });
   </script>
 
-  <!-- Some extra styling for our editor & diagram container -->
+  <!-- Additional styling for the editor & diagram container -->
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,8 +54,8 @@ title: "Mermaid Live Editor"
       height: 150px;
       font-family: monospace;
       font-size: 14px;
-      color: #000;        /* Black text for the textarea itself */
-      background: #ddd;   /* Light gray so you can see what you're typing */
+      color: #000;        /* Black text inside the textarea */
+      background: #ddd;   /* Light gray so text is readable */
       margin-top: 1rem;
     }
     .button-container {
@@ -65,28 +67,41 @@ title: "Mermaid Live Editor"
     }
     #diagram {
       border: 1px solid #444;
+      background: #333;
       margin-top: 1rem;
       padding: 10px;
+      /* Center the container and let it expand */
+      width: 100%;
+      max-width: 1200px;
+      margin: 1rem auto;
       text-align: center;
       overflow: auto;
-      background: #333; /* Dark background behind the SVG */
     }
     #diagram svg {
-      display: inline-block; /* Center the rendered SVG */
+      /* Force the SVG to fill the container width */
+      display: block;
+      width: 100% !important;
+      height: auto;
     }
   </style>
 </head>
 <body>
-  <!-- If you want to hide the theme’s built-in title block, 
-       you can add CSS to hide it, or remove your own <h1>. -->
+  <!-- Optional: remove this <h1> if you want only the theme's title -->
   <h1>Mermaid Live Editor</h1>
 
   <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
-graph TD;
-    A[Start] --> B[Process];
-    B --> C{Decision};
-    C -- Yes --> D[Result 1];
-    C -- No --> E[Result 2];
+graph LR;
+    A[Start] --> B[Load Knowledge Base RAG at Startup];
+    B --> C{Input Sources};
+    C -->|Jira| D[Fetch via API];
+    C -->|Confluence| E[Fetch via API];
+    C -->|Plain text| F[Parse];
+    D --> G[Normalize Text];
+    E --> G;
+    F --> G;
+    G --> H{Has AI Stories};
+    H -->|Yes| I[Identify Stories via LLM];
+    H -->|No| J[Extract RAG Stories];
   </textarea>
 
   <div class="button-container">
@@ -102,14 +117,14 @@ graph TD;
 
   <script>
     let scale = 1;
-    
+
     function renderDiagram() {
       const code = document.getElementById('editor').value;
       const diagramDiv = document.getElementById('diagram');
       diagramDiv.innerHTML = "";
 
       try {
-        // Validate Mermaid syntax; throws if invalid
+        // Validate Mermaid code syntax; throws error if invalid
         mermaid.parse(code);
 
         // Render the Mermaid diagram into an SVG
