@@ -1,5 +1,4 @@
 title: "Mermaid Live Editor"
-description: "Live editor for Mermaid diagrams"
-remote_theme: pages-themes/minimal
+remote_theme: pages-themes/slate
 plugins:
   - jekyll-remote-theme
