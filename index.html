@@ -3,30 +3,44 @@ layout: default
 title: "Mermaid Live Editor"
 ---
 
-<!-- Override the theme’s default container width -->
+<!-- Override theme margins to reduce blank space -->
 <style>
-  .wrapper {
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 1em !important; /* adjust as needed */
+  .wrapper,
+  .content,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
   }
 </style>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mermaid Live Editor</title>
+
   <!-- Load a specific version of Mermaid known to work -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
-    mermaid.initialize({ startOnLoad: false });
+    // Reduce Mermaid's internal padding around diagrams
+    mermaid.initialize({
+      startOnLoad: false,
+      flowchart: {
+        diagramPadding: 5, // Default is often higher
+        useMaxWidth: false
+      },
+      sequence: {
+        diagramMarginX: 5,
+        diagramMarginY: 5
+      }
+    });
   </script>
+
+  <!-- Additional styling for the editor and diagram container -->
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
     }
     textarea {
       width: 100%;
@@ -38,11 +52,11 @@ title: "Mermaid Live Editor"
       border: 1px solid #ccc;
       margin-top: 20px;
       padding: 10px;
-      text-align: center; /* Center the diagram */
-      overflow: auto;
+      text-align: center; /* Center the diagram horizontally */
+      overflow: auto;     /* Allow scrolling if diagram is large */
     }
     #diagram svg {
-      display: inline-block; /* Center the rendered SVG */
+      display: inline-block; /* Keep the SVG centered within #diagram */
     }
     .button-container {
       margin-top: 10px;
@@ -55,6 +69,7 @@ title: "Mermaid Live Editor"
 </head>
 <body>
   <h1>Mermaid Live Editor</h1>
+
   <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
 graph TD;
     A[Start] --> B[Process];
@@ -62,6 +77,7 @@ graph TD;
     C -- Yes --> D[Result 1];
     C -- No --> E[Result 2];
   </textarea>
+
   <div class="button-container">
     <button onclick="renderDiagram()">Render Diagram</button>
     <button onclick="zoomIn()">Zoom In</button>
@@ -70,6 +86,7 @@ graph TD;
     <button onclick="download('png')">Download PNG</button>
     <button onclick="download('pdf')">Download PDF</button>
   </div>
+
   <div id="diagram"></div>
 
   <script>
@@ -79,9 +96,11 @@ graph TD;
       const code = document.getElementById('editor').value;
       const diagramDiv = document.getElementById('diagram');
       diagramDiv.innerHTML = "";
+
       try {
-        // Validate the Mermaid code syntax; throws error if invalid
+        // Validate the Mermaid code syntax; throws an error if invalid
         mermaid.parse(code);
+
         // Render the Mermaid diagram into an SVG
         mermaid.render('mermaidGraph', code, function(svgCode) {
           diagramDiv.innerHTML = svgCode;
@@ -105,7 +124,7 @@ graph TD;
     }
     
     function applyZoom() {
-      const svgElement = document.getElementById('diagram').querySelector('svg');
+      const svgElement = document.querySelector('#diagram svg');
       if (svgElement) {
         svgElement.style.transform = 'scale(' + scale + ')';
         svgElement.style.transformOrigin = '0 0';
@@ -113,28 +132,34 @@ graph TD;
     }
 
     function download(type) {
-      const svgElement = document.getElementById('diagram').querySelector('svg');
+      const svgElement = document.querySelector('#diagram svg');
       if (!svgElement) {
         alert('Please render the diagram first!');
         return;
       }
       const svgData = new XMLSerializer().serializeToString(svgElement);
+
       if (type === 'svg') {
+        // Download as .svg
         const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         triggerDownload(url, 'diagram.svg');
       } else if (type === 'png' || type === 'pdf') {
+        // Convert SVG to an image, then to .png or .pdf
         const img = new Image();
         const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
+
         img.onload = function() {
           const canvas = document.createElement('canvas');
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
+
           const ctx = canvas.getContext('2d');
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
           if (type === 'png') {
             canvas.toBlob(function(blob) {
               const url = URL.createObjectURL(blob);
@@ -146,7 +171,7 @@ graph TD;
             script.onload = function() {
               const { jsPDF } = window.jspdf;
               const pdf = new jsPDF({
-                orientation: img.width > img.height ? 'landscape' : 'portrait',
+                orientation: (img.width > img.height) ? 'landscape' : 'portrait',
                 unit: 'pt',
                 format: [canvas.width, canvas.height]
               });
@@ -171,7 +196,7 @@ graph TD;
       document.body.removeChild(link);
     }
 
-    // Optionally, render the default diagram on page load
+    // Automatically render the default diagram on page load
     window.onload = renderDiagram;
   </script>
 </body>
