@@ -3,7 +3,7 @@ layout: default
 title: "Mermaid Live Editor"
 ---
 
-<!-- Override theme margins to reduce blank space -->
+<!-- Override extra margins from the theme -->
 <style>
   .wrapper,
   .content,
@@ -20,18 +20,18 @@ title: "Mermaid Live Editor"
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mermaid Live Editor</title>
 
-  <!-- Load Mermaid JS (dark mode support in v8.13.10+) -->
+  <!-- Load Mermaid JS with dark mode -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
-    // Configure Mermaid for dark mode, left-to-right flow, and increased spacing
+    // Configure Mermaid: dark theme, left-to-right, increased spacing
     mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
       flowchart: {
         diagramPadding: 5,
         useMaxWidth: true,
-        nodeSpacing: 100,  // Increase horizontal spacing between nodes
-        rankSpacing: 100   // Increase spacing between "rows" in LR or TD
+        nodeSpacing: 100,  // Increase horizontal spacing
+        rankSpacing: 100   // Increase vertical spacing
       },
       sequence: {
         diagramMarginX: 5,
@@ -40,11 +40,11 @@ title: "Mermaid Live Editor"
     });
   </script>
 
-  <!-- Additional styling for the editor & diagram container -->
+  <!-- Additional styling for editor & diagram container -->
   <style>
     body {
       font-family: Arial, sans-serif;
-      color: #fff; /* Ensure text is visible on dark background */
+      color: #fff; /* White text on dark background */
     }
     h1 {
       margin: 1rem;
@@ -54,8 +54,8 @@ title: "Mermaid Live Editor"
       height: 150px;
       font-family: monospace;
       font-size: 14px;
-      color: #000;        /* Black text inside the textarea */
-      background: #ddd;   /* Light gray so text is readable */
+      color: #000;        /* Black text for editing */
+      background: #ddd;   /* Light background for contrast */
       margin-top: 1rem;
     }
     .button-container {
@@ -68,17 +68,14 @@ title: "Mermaid Live Editor"
     #diagram {
       border: 1px solid #444;
       background: #333;
-      margin-top: 1rem;
+      margin: 1rem auto;
       padding: 10px;
-      /* Center the container and let it expand */
       width: 100%;
       max-width: 1200px;
-      margin: 1rem auto;
       text-align: center;
       overflow: auto;
     }
     #diagram svg {
-      /* Force the SVG to fill the container width */
       display: block;
       width: 100% !important;
       height: auto;
@@ -86,7 +83,7 @@ title: "Mermaid Live Editor"
   </style>
 </head>
 <body>
-  <!-- Optional: remove this <h1> if you want only the theme's title -->
+  <!-- You can remove the duplicate title if desired -->
   <h1>Mermaid Live Editor</h1>
 
   <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
@@ -124,7 +121,7 @@ graph LR;
       diagramDiv.innerHTML = "";
 
       try {
-        // Validate Mermaid code syntax; throws error if invalid
+        // Validate Mermaid syntax (throws error if invalid)
         mermaid.parse(code);
 
         // Render the Mermaid diagram into an SVG
@@ -166,13 +163,13 @@ graph LR;
       const svgData = new XMLSerializer().serializeToString(svgElement);
 
       if (type === 'svg') {
-        // Download as .svg
         const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         triggerDownload(url, 'diagram.svg');
       } else if (type === 'png' || type === 'pdf') {
-        // Convert SVG to an image, then to .png or .pdf
         const img = new Image();
+        // Allow cross-origin use for canvas conversion
+        img.crossOrigin = "anonymous";
         const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
 
@@ -180,7 +177,6 @@ graph LR;
           const canvas = document.createElement('canvas');
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
-
           const ctx = canvas.getContext('2d');
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -212,7 +208,7 @@ graph LR;
         img.src = url;
       }
     }
-    
+
     function triggerDownload(uri, fileName) {
       const link = document.createElement("a");
       link.download = fileName;
