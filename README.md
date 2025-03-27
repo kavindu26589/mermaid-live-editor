@@ -1,6 +1,7 @@
 # Mermaid Live Editor
 
 A dark-themed live editor for creating and downloading Mermaid diagrams as SVG, PNG, or PDF. This project uses GitHub Pages with Jekyll and the Slate theme for a modern dark UI.
+Link: https://kavindu26589.github.io/mermaid-live-editor/
 
 ## Features
 
