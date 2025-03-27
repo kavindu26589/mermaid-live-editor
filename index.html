@@ -16,14 +16,14 @@ title: "Mermaid Live Editor"
     mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
-      flowchart: { diagramPadding: 5, nodeSpacing: 100, rankSpacing: 100 }
+      flowchart: { diagramPadding: 0, nodeSpacing: 100, rankSpacing: 100 }
     });
   </script>
 
-  <!-- Load html2canvas for screenshot capture -->
+  <!-- Load html2canvas for PNG/PDF Capture -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <!-- Load jsPDF for PDF generation -->
+  <!-- Load jsPDF for PDF Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
@@ -47,15 +47,27 @@ title: "Mermaid Live Editor"
     button {
       margin: 5px;
     }
+    #diagram-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      margin: 1rem auto;
+    }
     #diagram {
       border: 1px solid #444;
       background: #333;
-      margin: 1rem auto;
       padding: 10px;
-      width: 100%;
-      max-width: 1200px;
+      width: fit-content;
       text-align: center;
-      overflow: auto;
+      display: inline-block;
+      overflow: hidden;
+    }
+    #diagram svg {
+      display: block;
+      width: auto !important;
+      height: auto !important;
+      margin: 0 auto;
     }
   </style>
 </head>
@@ -85,7 +97,9 @@ graph LR;
     <button onclick="download('pdf')">Download PDF</button>
   </div>
 
-  <div id="diagram"></div>
+  <div id="diagram-container">
+    <div id="diagram"></div>
+  </div>
 
   <script>
     let scale = 1;
@@ -99,7 +113,14 @@ graph LR;
         mermaid.parse(code);
         mermaid.render('mermaidGraph', code, function(svgCode) {
           diagramDiv.innerHTML = svgCode;
-          applyZoom();
+
+          // Fix SVG scaling
+          const svg = document.querySelector("#diagram svg");
+          if (svg) {
+            svg.style.width = "auto";
+            svg.style.height = "auto";
+            svg.style.margin = "0";
+          }
         });
       } catch (error) {
         diagramDiv.innerHTML = '<pre style="color:red;">Error: ' + error.message + '</pre>';
@@ -122,39 +143,36 @@ graph LR;
       const svgElement = document.querySelector('#diagram svg');
       if (svgElement) {
         svgElement.style.transform = 'scale(' + scale + ')';
-        svgElement.style.transformOrigin = '0 0';
+        svgElement.style.transformOrigin = 'center center';
       }
     }
 
     function download(type) {
-      const svgElement = document.querySelector('#diagram svg');
-      if (!svgElement) {
+      const diagramElement = document.querySelector("#diagram");
+      if (!diagramElement) {
         alert('Please render the diagram first!');
         return;
       }
 
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-
-      if (type === 'svg') {
-        triggerDownload(url, 'diagram.svg');
-      } else if (type === 'png' || type === 'pdf') {
-        html2canvas(document.querySelector("#diagram"), { backgroundColor: "#fff" }).then(canvas => {
-          if (type === 'png') {
-            canvas.toBlob(blob => {
-              const pngUrl = URL.createObjectURL(blob);
-              triggerDownload(pngUrl, 'diagram.png');
-            }, 'image/png');
-          } else if (type === 'pdf') {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('landscape', 'pt', [canvas.width, canvas.height]);
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save('diagram.pdf');
-          }
-        });
-      }
+      html2canvas(diagramElement, {
+        backgroundColor: "#fff",
+        logging: true,
+        scale: 2,
+        useCORS: true
+      }).then(canvas => {
+        if (type === 'png') {
+          canvas.toBlob(blob => {
+            const pngUrl = URL.createObjectURL(blob);
+            triggerDownload(pngUrl, 'diagram.png');
+          }, 'image/png');
+        } else if (type === 'pdf') {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF('landscape', 'pt', [canvas.width, canvas.height]);
+          const imgData = canvas.toDataURL('image/png');
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+          pdf.save('diagram.pdf');
+        }
+      });
     }
 
     function triggerDownload(uri, fileName) {
