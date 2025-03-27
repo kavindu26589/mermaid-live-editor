@@ -3,77 +3,89 @@ layout: default
 title: "Mermaid Live Editor"
 ---
 
+<!-- Override extra margins from the theme -->
+<style>
+  .wrapper,
+  .content,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+</style>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mermaid Live Editor</title>
 
-  <!-- Load Mermaid JS -->
+  <!-- Load Mermaid JS with dark mode -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
+    // Configure Mermaid: dark theme, left-to-right, increased spacing
     mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
-      flowchart: { diagramPadding: 0, nodeSpacing: 100, rankSpacing: 100 }
+      flowchart: {
+        diagramPadding: 5,
+        useMaxWidth: true,
+        nodeSpacing: 100,  // Increase horizontal spacing
+        rankSpacing: 100   // Increase vertical spacing
+      },
+      sequence: {
+        diagramMarginX: 5,
+        diagramMarginY: 5
+      }
     });
   </script>
 
-  <!-- Load html2canvas for PNG/PDF Capture -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-  <!-- Load jsPDF for PDF Export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
+  <!-- Additional styling for editor & diagram container -->
   <style>
     body {
       font-family: Arial, sans-serif;
-      color: #fff;
-      background: #111;
+      color: #fff; /* White text on dark background */
+    }
+    h1 {
+      margin: 1rem;
     }
     #editor {
       width: 100%;
       height: 150px;
       font-family: monospace;
       font-size: 14px;
-      color: #000;
-      background: #ddd;
+      color: #000;        /* Black text for editing */
+      background: #ddd;   /* Light background for contrast */
       margin-top: 1rem;
     }
     .button-container {
       margin: 1rem 0;
     }
     button {
-      margin: 5px;
-    }
-    #diagram-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      margin: 1rem auto;
+      margin-right: 10px;
+      margin-top: 5px;
     }
     #diagram {
       border: 1px solid #444;
       background: #333;
+      margin: 1rem auto;
       padding: 10px;
-      width: fit-content;
+      width: 100%;
+      max-width: 1200px;
       text-align: center;
-      display: inline-block;
-      overflow: hidden;
+      overflow: auto;
     }
     #diagram svg {
       display: block;
-      width: auto !important;
-      height: auto !important;
-      margin: 0 auto;
+      width: 100% !important;
+      height: auto;
     }
   </style>
 </head>
 <body>
+  <!-- You can remove the duplicate title if desired -->
 
-  <textarea id="editor">
+  <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
 graph LR;
     A[Start] --> B[Load Knowledge Base RAG at Startup];
     B --> C{Input Sources};
@@ -97,9 +109,7 @@ graph LR;
     <button onclick="download('pdf')">Download PDF</button>
   </div>
 
-  <div id="diagram-container">
-    <div id="diagram"></div>
-  </div>
+  <div id="diagram"></div>
 
   <script>
     let scale = 1;
@@ -110,17 +120,13 @@ graph LR;
       diagramDiv.innerHTML = "";
 
       try {
+        // Validate Mermaid syntax (throws error if invalid)
         mermaid.parse(code);
+
+        // Render the Mermaid diagram into an SVG
         mermaid.render('mermaidGraph', code, function(svgCode) {
           diagramDiv.innerHTML = svgCode;
-
-          // Fix SVG scaling
-          const svg = document.querySelector("#diagram svg");
-          if (svg) {
-            svg.style.width = "auto";
-            svg.style.height = "auto";
-            svg.style.margin = "0";
-          }
+          applyZoom();
         });
       } catch (error) {
         diagramDiv.innerHTML = '<pre style="color:red;">Error: ' + error.message + '</pre>';
@@ -131,48 +137,75 @@ graph LR;
       scale += 0.1;
       applyZoom();
     }
-
+    
     function zoomOut() {
       if (scale > 0.2) {
         scale -= 0.1;
         applyZoom();
       }
     }
-
+    
     function applyZoom() {
       const svgElement = document.querySelector('#diagram svg');
       if (svgElement) {
         svgElement.style.transform = 'scale(' + scale + ')';
-        svgElement.style.transformOrigin = 'center center';
+        svgElement.style.transformOrigin = '0 0';
       }
     }
 
     function download(type) {
-      const diagramElement = document.querySelector("#diagram");
-      if (!diagramElement) {
+      const svgElement = document.querySelector('#diagram svg');
+      if (!svgElement) {
         alert('Please render the diagram first!');
         return;
       }
+      const svgData = new XMLSerializer().serializeToString(svgElement);
 
-      html2canvas(diagramElement, {
-        backgroundColor: "#fff",
-        logging: true,
-        scale: 2,
-        useCORS: true
-      }).then(canvas => {
-        if (type === 'png') {
-          canvas.toBlob(blob => {
-            const pngUrl = URL.createObjectURL(blob);
-            triggerDownload(pngUrl, 'diagram.png');
-          }, 'image/png');
-        } else if (type === 'pdf') {
-          const { jsPDF } = window.jspdf;
-          const pdf = new jsPDF('landscape', 'pt', [canvas.width, canvas.height]);
-          const imgData = canvas.toDataURL('image/png');
-          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-          pdf.save('diagram.pdf');
-        }
-      });
+      if (type === 'svg') {
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, 'diagram.svg');
+      } else if (type === 'png' || type === 'pdf') {
+        const img = new Image();
+        // Allow cross-origin use for canvas conversion
+        img.crossOrigin = "anonymous";
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          if (type === 'png') {
+            canvas.toBlob(function(blob) {
+              const url = URL.createObjectURL(blob);
+              triggerDownload(url, 'diagram.png');
+            });
+          } else if (type === 'pdf') {
+            const script = document.createElement('script');
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+            script.onload = function() {
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF({
+                orientation: (img.width > img.height) ? 'landscape' : 'portrait',
+                unit: 'pt',
+                format: [canvas.width, canvas.height]
+              });
+              const imgData = canvas.toDataURL('image/png');
+              pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+              pdf.save('diagram.pdf');
+            };
+            document.body.appendChild(script);
+          }
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
     }
 
     function triggerDownload(uri, fileName) {
@@ -184,8 +217,8 @@ graph LR;
       document.body.removeChild(link);
     }
 
+    // Render the default diagram on page load
     window.onload = renderDiagram;
   </script>
-
 </body>
 </html>
