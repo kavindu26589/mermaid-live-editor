@@ -3,55 +3,34 @@ layout: default
 title: "Mermaid Live Editor"
 ---
 
-<!-- Override extra margins from the theme -->
-<style>
-  .wrapper,
-  .content,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-</style>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mermaid Live Editor</title>
 
-  <!-- Load Mermaid JS with dark mode -->
+  <!-- Load Mermaid JS -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@8.13.10/dist/mermaid.min.js"></script>
   <script>
-    // Configure Mermaid: dark theme, left-to-right, increased spacing
     mermaid.initialize({
       startOnLoad: false,
       theme: 'dark',
-      flowchart: {
-        diagramPadding: 5,
-        useMaxWidth: true,
-        nodeSpacing: 100,
-        rankSpacing: 100
-      },
-      sequence: {
-        diagramMarginX: 5,
-        diagramMarginY: 5
-      }
+      flowchart: { diagramPadding: 5, nodeSpacing: 100, rankSpacing: 100 }
     });
   </script>
 
-  <!-- Load Canvg.js for SVG-to-Canvas Rendering -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/canvg/3.0.0/canvg.min.js"></script>
+  <!-- Load html2canvas for screenshot capture -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <!-- Additional styling for editor & diagram container -->
+  <!-- Load jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       color: #fff;
       background: #111;
-    }
-    h1 {
-      margin: 1rem;
     }
     #editor {
       width: 100%;
@@ -66,8 +45,7 @@ title: "Mermaid Live Editor"
       margin: 1rem 0;
     }
     button {
-      margin-right: 10px;
-      margin-top: 5px;
+      margin: 5px;
     }
     #diagram {
       border: 1px solid #444;
@@ -79,16 +57,11 @@ title: "Mermaid Live Editor"
       text-align: center;
       overflow: auto;
     }
-    #diagram svg {
-      display: block;
-      width: 100% !important;
-      height: auto;
-    }
   </style>
 </head>
 <body>
 
-  <textarea id="editor" placeholder="Enter your Mermaid diagram code here...">
+  <textarea id="editor">
 graph LR;
     A[Start] --> B[Load Knowledge Base RAG at Startup];
     B --> C{Input Sources};
@@ -137,14 +110,14 @@ graph LR;
       scale += 0.1;
       applyZoom();
     }
-    
+
     function zoomOut() {
       if (scale > 0.2) {
         scale -= 0.1;
         applyZoom();
       }
     }
-    
+
     function applyZoom() {
       const svgElement = document.querySelector('#diagram svg');
       if (svgElement) {
@@ -167,35 +140,20 @@ graph LR;
       if (type === 'svg') {
         triggerDownload(url, 'diagram.svg');
       } else if (type === 'png' || type === 'pdf') {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        canvas.width = 1200;
-        canvas.height = 800;
-        ctx.fillStyle = '#fff'; // Set white background
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Render SVG to Canvas using Canvg.js
-        const v = canvg.Canvg.fromString(ctx, svgData);
-        v.start();
-
-        if (type === 'png') {
-          canvas.toBlob(function (blob) {
-            const pngUrl = URL.createObjectURL(blob);
-            triggerDownload(pngUrl, 'diagram.png');
-          }, 'image/png');
-        } else if (type === 'pdf') {
-          const pdfScript = document.createElement('script');
-          pdfScript.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          pdfScript.onload = function () {
+        html2canvas(document.querySelector("#diagram"), { backgroundColor: "#fff" }).then(canvas => {
+          if (type === 'png') {
+            canvas.toBlob(blob => {
+              const pngUrl = URL.createObjectURL(blob);
+              triggerDownload(pngUrl, 'diagram.png');
+            }, 'image/png');
+          } else if (type === 'pdf') {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('landscape', 'pt', [canvas.width, canvas.height]);
             const imgData = canvas.toDataURL('image/png');
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
             pdf.save('diagram.pdf');
-          };
-          document.body.appendChild(pdfScript);
-        }
+          }
+        });
       }
     }
 
@@ -208,8 +166,8 @@ graph LR;
       document.body.removeChild(link);
     }
 
-    // Render the default diagram on page load
     window.onload = renderDiagram;
   </script>
+
 </body>
 </html>
